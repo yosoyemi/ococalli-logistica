@@ -36,7 +36,7 @@ const Home: React.FC = () => {
       <div className="bg-gradient-to-r from-green-100 to-green-200 py-10">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold text-green-800 mb-4">
-            ¡Bienvenido a Cocoalli Logística!
+            ¡Bienvenido a Ococalli Logística!
           </h1>
           <p className="text-lg md:text-xl text-green-700">
             Lleva el control de tu membresía de forma sencilla y confiable.

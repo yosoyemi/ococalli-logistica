@@ -42,7 +42,7 @@ const Navbar: React.FC = () => {
             className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md flex items-center space-x-2"
           >
             <HomeIcon className="h-5 w-5" aria-hidden="true" />
-            <span>Home</span>
+            <span>Inicio</span>
           </Link>
           <Link
             to="/admin"
@@ -66,7 +66,7 @@ const Navbar: React.FC = () => {
                 }}
                 className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
               >
-                Logout
+                Cerrar sesión 
               </button>
             </>
           ) : (
@@ -74,7 +74,7 @@ const Navbar: React.FC = () => {
               to="/login"
               className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
             >
-              Login Admin
+              Iniciar sesión
             </Link>
           )}
         </div>
@@ -123,7 +123,7 @@ const Navbar: React.FC = () => {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <HomeIcon className="h-5 w-5" aria-hidden="true" />
-                    <span>Home</span>
+                    <span>Inicio</span>
                   </Link>
                   <Link
                     to="/admin"

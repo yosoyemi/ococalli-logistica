@@ -1,4 +1,3 @@
-// src/pages/AdminDashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import supabase from '../services/supabase';
@@ -17,21 +16,21 @@ const AdminDashboard: React.FC = () => {
         setLoading(true);
         setError('');
 
-        // 1. Contar planes
+        // Contar planes
         const { count: totalPlans, error: plansError } = await supabase
           .from('membership_plans')
           .select('*', { count: 'exact' });
         if (plansError) throw plansError;
         setPlansCount(totalPlans || 0);
 
-        // 2. Contar clientes
+        // Contar clientes
         const { count: totalCustomers, error: customersError } = await supabase
           .from('customers')
           .select('*', { count: 'exact' });
         if (customersError) throw customersError;
         setCustomersCount(totalCustomers || 0);
 
-        // 3. Contar "ACTIVE"
+        // Contar "ACTIVE"
         const { count: totalActive, error: activeError } = await supabase
           .from('customers')
           .select('*', { count: 'exact' })
@@ -39,7 +38,7 @@ const AdminDashboard: React.FC = () => {
         if (activeError) throw activeError;
         setActiveCount(totalActive || 0);
 
-        // 4. Contar "CANCELLED"
+        // Contar "CANCELLED"
         const { count: totalCancelled, error: cancelledError } = await supabase
           .from('customers')
           .select('*', { count: 'exact' })
@@ -82,27 +81,31 @@ const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Planes */}
         <div className="border rounded p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-700">Planes de Membresía</h3>
+          <h3 className="text-lg font-semibold text-gray-700">Planes</h3>
           <p className="text-3xl font-bold text-green-700 mt-2">{plansCount}</p>
         </div>
         {/* Clientes */}
         <div className="border rounded p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-700">Clientes Registrados</h3>
-          <p className="text-3xl font-bold text-green-700 mt-2">{customersCount}</p>
+          <h3 className="text-lg font-semibold text-gray-700">Clientes</h3>
+          <p className="text-3xl font-bold text-green-700 mt-2">
+            {customersCount}
+          </p>
         </div>
         {/* Suscripciones Activas */}
         <div className="border rounded p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-700">Suscripciones Activas</h3>
+          <h3 className="text-lg font-semibold text-gray-700">Activas</h3>
           <p className="text-3xl font-bold text-green-700 mt-2">{activeCount}</p>
         </div>
         {/* Suscripciones Canceladas */}
         <div className="border rounded p-4 text-center">
           <h3 className="text-lg font-semibold text-gray-700">Canceladas</h3>
-          <p className="text-3xl font-bold text-green-700 mt-2">{cancelledCount}</p>
+          <p className="text-3xl font-bold text-green-700 mt-2">
+            {cancelledCount}
+          </p>
         </div>
       </div>
 
-      {/* Accesos rápidos a secciones del panel */}
+      {/* Accesos rápidos */}
       <div className="mt-8 flex flex-wrap gap-4">
         <Link
           to="/admin/plans"
@@ -127,6 +130,14 @@ const AdminDashboard: React.FC = () => {
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
         >
           Renovaciones
+        </Link>
+
+        {/* Ejemplo de Calendario de Recogidas */}
+        <Link
+          to="/admin/calendar"
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          Calendario Recogidas
         </Link>
       </div>
     </div>

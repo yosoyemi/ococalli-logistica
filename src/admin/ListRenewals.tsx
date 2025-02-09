@@ -1,4 +1,5 @@
 // src/admin/ListRenewals.tsx
+
 import React, { useEffect, useState } from 'react';
 import supabase from '../services/supabase';
 
@@ -16,9 +17,13 @@ interface Renewal {
     name: string;
     email: string;
     status: string;
+    start_date?: string;
+    end_date?: string;
   };
   membership_plans: {
     name: string;
+    duration_months?: number;
+    free_months?: number;
   };
 }
 
@@ -36,11 +41,15 @@ interface Customer {
   name: string;
   email: string;
   status: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 interface Plan {
   id: string;
   name: string;
+  duration_months?: number;
+  free_months?: number;
 }
 
 const ListRenewals: React.FC = () => {
@@ -54,8 +63,15 @@ const ListRenewals: React.FC = () => {
     concept: 'Renovación mensual',
     amount: '',
     method_of_payment: '',
-    received_by: ''
+    received_by: '',
   });
+
+  // Helper para sumar meses a una fecha
+  const addMonths = (date: Date, monthsToAdd: number) => {
+    const newDate = new Date(date);
+    newDate.setMonth(newDate.getMonth() + monthsToAdd);
+    return newDate;
+  };
 
   const fetchData = async () => {
     try {
@@ -73,8 +89,8 @@ const ListRenewals: React.FC = () => {
           method_of_payment,
           received_by,
           created_at,
-          customers ( name, email, status ),
-          membership_plans ( name )
+          customers ( name, email, status, start_date, end_date ),
+          membership_plans ( name, duration_months, free_months )
         `)
         .order('created_at', { ascending: false });
       if (renewalError) throw renewalError;
@@ -83,7 +99,7 @@ const ListRenewals: React.FC = () => {
       // Clientes
       const { data: customerData, error: customerError } = await supabase
         .from('customers')
-        .select('id, name, email, status')
+        .select('id, name, email, status, start_date, end_date')
         .order('name');
       if (customerError) throw customerError;
       setCustomers(customerData as Customer[]);
@@ -91,7 +107,7 @@ const ListRenewals: React.FC = () => {
       // Planes
       const { data: planData, error: planError } = await supabase
         .from('membership_plans')
-        .select('id, name')
+        .select('id, name, duration_months, free_months')
         .order('name');
       if (planError) throw planError;
       setPlans(planData as Plan[]);
@@ -107,10 +123,16 @@ const ListRenewals: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     setNewRenewal({
       ...newRenewal,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
+  /**
+   * Lógica principal:
+   * 1. Insertar la renovación en membership_renewals.
+   * 2. Determinar fechas de start_date y end_date para el cliente.
+   * 3. Actualizar la tabla customers con las nuevas fechas y estatus.
+   */
   const handleCreateRenewal = async () => {
     try {
       setError('');
@@ -118,34 +140,90 @@ const ListRenewals: React.FC = () => {
         setError('Selecciona un cliente y un plan.');
         return;
       }
+
+      // 1) Insertar la renovación con los datos básicos
       const amountParsed = parseFloat(newRenewal.amount) || 0;
       const { error: insertError } = await supabase
         .from('membership_renewals')
-        .insert([{
-          customer_id: newRenewal.customer_id,
-          membership_plan_id: newRenewal.membership_plan_id,
-          concept: newRenewal.concept,
-          amount: amountParsed,
-          method_of_payment: newRenewal.method_of_payment,
-          received_by: newRenewal.received_by
-        }]);
+        .insert([
+          {
+            customer_id: newRenewal.customer_id,
+            membership_plan_id: newRenewal.membership_plan_id,
+            concept: newRenewal.concept,
+            amount: amountParsed,
+            method_of_payment: newRenewal.method_of_payment,
+            received_by: newRenewal.received_by,
+            renewal_date: new Date().toISOString(), 
+          },
+        ]);
 
       if (insertError) throw insertError;
 
-      // Reactivar si estaba cancelado o expirado
-      await supabase
-        .from('customers')
-        .update({ status: 'ACTIVE' })
-        .eq('id', newRenewal.customer_id);
+      // 2) Calcular nuevas fechas para el cliente
+      //    - Obtenemos el plan (duration_months, free_months).
+      //    - Obtenemos el cliente actual (start_date, end_date, status).
+      const { data: planData, error: planError } = await supabase
+        .from('membership_plans')
+        .select('duration_months, free_months')
+        .eq('id', newRenewal.membership_plan_id)
+        .single();
+      if (planError) throw planError;
+      const { duration_months = 0, free_months = 0 } = planData || {};
 
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('id, status, start_date, end_date')
+        .eq('id', newRenewal.customer_id)
+        .single();
+      if (customerError) throw customerError;
+
+      // A) Sumar ambos tipos de meses
+      const totalMonths = duration_months + free_months;
+
+      // B) Determinar la fecha de inicio y fin
+      let newStartDate = new Date(); 
+      let newEndDate = new Date();
+
+      // Si el cliente ya tiene una membresía activa y su end_date es futuro,
+      // lo extendemos a partir de esa fecha. De lo contrario, se inicia desde hoy.
+      if (
+        customerData.end_date &&
+        new Date(customerData.end_date) > new Date() &&
+        customerData.status === 'ACTIVE'
+      ) {
+        // Comenzamos donde termina la membresía actual
+        newStartDate = new Date(customerData.end_date);
+      }
+
+      // Asignamos la nueva fecha de fin
+      newEndDate = addMonths(newStartDate, totalMonths);
+
+      // 3) Actualizamos el cliente con las nuevas fechas y estatus = ACTIVE
+      const { error: updateCustomerError } = await supabase
+        .from('customers')
+        .update({
+          // Solo cambiamos start_date si estaba inactivo o si su end_date ya expiró:
+          start_date:
+            customerData.status !== 'ACTIVE' || !customerData.end_date
+              ? new Date().toISOString()
+              : customerData.start_date,
+          end_date: newEndDate.toISOString(),
+          status: 'ACTIVE',
+        })
+        .eq('id', newRenewal.customer_id);
+      if (updateCustomerError) throw updateCustomerError;
+
+      // Reseteamos el formulario
       setNewRenewal({
         customer_id: '',
         membership_plan_id: '',
         concept: 'Renovación mensual',
         amount: '',
         method_of_payment: '',
-        received_by: ''
+        received_by: '',
       });
+
+      // Recargamos datos
       await fetchData();
     } catch (err: any) {
       setError(err.message);
@@ -185,7 +263,7 @@ const ListRenewals: React.FC = () => {
             name="customer_id"
             onChange={handleChange}
             value={newRenewal.customer_id}
-            className="border p-2"
+            className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
             <option value="">Selecciona cliente</option>
             {customers.map((c) => (
@@ -199,7 +277,7 @@ const ListRenewals: React.FC = () => {
             name="membership_plan_id"
             onChange={handleChange}
             value={newRenewal.membership_plan_id}
-            className="border p-2"
+            className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
             <option value="">Selecciona plan</option>
             {plans.map((p) => (
@@ -217,7 +295,7 @@ const ListRenewals: React.FC = () => {
             name="concept"
             value={newRenewal.concept}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
           />
           <input
             type="number"
@@ -226,7 +304,7 @@ const ListRenewals: React.FC = () => {
             name="amount"
             value={newRenewal.amount}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
           />
         </div>
 
@@ -237,7 +315,7 @@ const ListRenewals: React.FC = () => {
             name="method_of_payment"
             value={newRenewal.method_of_payment}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
           />
           <input
             type="text"
@@ -245,13 +323,13 @@ const ListRenewals: React.FC = () => {
             name="received_by"
             value={newRenewal.received_by}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
           />
         </div>
 
         <button
           onClick={handleCreateRenewal}
-          className="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          className="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
         >
           Crear Renovación
         </button>
@@ -282,7 +360,7 @@ const ListRenewals: React.FC = () => {
             {r.customers.status === 'ACTIVE' && (
               <button
                 onClick={() => handleCancelMembership(r.customer_id)}
-                className="mt-2 bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                className="mt-2 bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors"
               >
                 Cancelar Membresía
               </button>

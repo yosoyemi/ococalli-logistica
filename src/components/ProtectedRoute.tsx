@@ -1,4 +1,3 @@
-// src/components/ProtectedRoute.tsx
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import supabase from '../services/supabase';
@@ -8,12 +7,16 @@ interface ProtectedRouteProps {
   allowedEmails: string[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedEmails }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  allowedEmails,
+}) => {
   const [loading, setLoading] = useState(true);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const getSession = async () => {
+      // Obtener la sesión actual de Supabase Auth
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -24,7 +27,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedEmails
 
     getSession();
 
-    // Escucha cambios de autenticación
+    // Escuchar cambios de autenticación (login / logout)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -38,11 +41,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedEmails
   }, []);
 
   if (loading) {
-    // Mostrar un loader mientras verifica la sesión
+    // Mostrar un loader mientras se verifica la sesión
     return <div className="p-4">Cargando...</div>;
   }
 
-  // Verifica si el correo actual está permitido
+  // Verifica si el correo actual está en la lista permitida
   if (!sessionEmail || !allowedEmails.includes(sessionEmail)) {
     return <Navigate to="/login" replace />;
   }

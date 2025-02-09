@@ -1,4 +1,5 @@
 // src/pages/MemberLogin.tsx
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../services/supabase';
@@ -14,7 +15,7 @@ const MemberLogin: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // Buscar en la tabla customers por email + password (en producción hashear)
+      // Buscar en la tabla customers por email + password
       const { data, error } = await supabase
         .from('customers')
         .select('*')
@@ -27,7 +28,10 @@ const MemberLogin: React.FC = () => {
         return;
       }
 
-      // Podrías guardar en un contexto global la info del cliente
+      // Guardar el ID del customer en localStorage (o sessionStorage)
+      localStorage.setItem('customer_id', data.id);
+
+      // Redirigir a la pantalla de la membresía (sin :code)
       navigate('/my-membership');
     } catch (err: any) {
       setErrorMessage(err.message);
