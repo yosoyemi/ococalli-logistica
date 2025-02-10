@@ -1,5 +1,3 @@
-// src/pages/MemberLogin.tsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../services/supabase';
@@ -15,7 +13,7 @@ const MemberLogin: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // Buscar en la tabla customers por email + password
+      // Buscar al cliente en la tabla "customers" usando email + password
       const { data, error } = await supabase
         .from('customers')
         .select('*')
@@ -31,7 +29,7 @@ const MemberLogin: React.FC = () => {
       // Guardar el ID del customer en localStorage (o sessionStorage)
       localStorage.setItem('customer_id', data.id);
 
-      // Redirigir a la pantalla de la membresía (sin :code)
+      // Redirigir a la pantalla de la membresía sin el código
       navigate('/my-membership');
     } catch (err: any) {
       setErrorMessage(err.message);
@@ -68,7 +66,10 @@ const MemberLogin: React.FC = () => {
               required
             />
           </div>
-          <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          <button
+            type="submit"
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
             Iniciar Sesión
           </button>
         </form>

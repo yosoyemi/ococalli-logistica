@@ -1,4 +1,3 @@
-// src/pages/Home.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../services/supabase';
@@ -12,16 +11,18 @@ const Home: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!membershipCode) return;
+    if (!membershipCode) {
+      return;
+    }
 
-    // Verificar si existe la membresía
-    const { data, error } = await supabase
+    // Verifica si existe la membresía
+    const { data, error: supabaseError } = await supabase
       .from('customers')
       .select('id')
       .eq('membership_code', membershipCode)
       .single();
 
-    if (error || !data) {
+    if (supabaseError || !data) {
       setError('No se encontró esa membresía.');
       return;
     }
