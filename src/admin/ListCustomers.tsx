@@ -156,12 +156,6 @@ const ListCustomers: React.FC = () => {
     saveAs(blob, 'clientes.xlsx');
   };
 
-  const togglePassword = (customerId: string) => {
-    setShowPassword((prev) => ({
-      ...prev,
-      [customerId]: !prev[customerId],
-    }));
-  };
 
   return (
     <div className="bg-white rounded shadow p-4">
@@ -235,9 +229,9 @@ const ListCustomers: React.FC = () => {
                   </p>
                   <button
                     onClick={() => togglePassword(c.id)}
-                    className="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+      
                   >
-                    {showPassword[c.id] ? 'Ocultar' : 'Revelar'}
+                      {showPassword[c.id] ? 'Ocultar' : ''}
                   </button>
                 </div>
               )}

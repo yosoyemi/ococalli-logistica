@@ -137,7 +137,7 @@ const AdminDashboard: React.FC = () => {
           to="/admin/calendar"
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
         >
-          Calendario Recogidas
+         Calendario de Entrega
         </Link>
       </div>
     </div>

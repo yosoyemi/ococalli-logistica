@@ -1,5 +1,6 @@
 // src/pages/Register.tsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';  // IMPORTANTE
 import supabase from '../services/supabase';
 
 interface MembershipPlan {
@@ -29,6 +30,7 @@ enum Step {
 }
 
 const Register: React.FC = () => {
+  const navigate = useNavigate(); // Para redirigir
   const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>([]);
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -41,6 +43,9 @@ const Register: React.FC = () => {
 
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Para evitar doble registro
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -103,6 +108,10 @@ const Register: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    // Evitar doble clic
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     setErrorMessage('');
     setSuccessMessage('');
 
@@ -125,9 +134,22 @@ const Register: React.FC = () => {
 
       if (error) throw error;
 
-      setSuccessMessage(`¡Registro exitoso! Tu código de membresía es: ${membership_code}`);
+      setSuccessMessage(
+        `¡Registro exitoso! Tu código de membresía es: ${membership_code}`
+      );
+
+      // Redirige al home inmediatamente o después de un pequeño delay
+      // Si deseas mostrar el mensaje por un momento, usa setTimeout:
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+
+      // Si prefieres redirigir al instante, comenta el setTimeout y
+      // usa directamente:
+      // navigate('/');
     } catch (err: any) {
       setErrorMessage(err.message);
+      setIsSubmitting(false); // Permite reintentar
     }
   };
 
@@ -173,7 +195,9 @@ const Register: React.FC = () => {
       case Step.PersonalData:
         return (
           <>
-            <h2 className="text-xl font-bold mb-4 text-green-700">Datos Personales</h2>
+            <h2 className="text-xl font-bold mb-4 text-green-700">
+              Datos Personales
+            </h2>
             <div className="mb-4">
               <label className="block mb-1 font-medium">Nombre</label>
               <input
@@ -197,7 +221,9 @@ const Register: React.FC = () => {
               />
             </div>
             <div className="mb-4">
-              <label className="block mb-1 font-medium">Teléfono (opcional)</label>
+              <label className="block mb-1 font-medium">
+                Teléfono (opcional)
+              </label>
               <input
                 type="text"
                 name="phone"
@@ -211,7 +237,9 @@ const Register: React.FC = () => {
       case Step.Credentials:
         return (
           <>
-            <h2 className="text-xl font-bold mb-4 text-green-700">Credenciales</h2>
+            <h2 className="text-xl font-bold mb-4 text-green-700">
+              Credenciales
+            </h2>
             <div className="mb-4">
               <label className="block mb-1 font-medium">Contraseña</label>
               <input
@@ -222,15 +250,21 @@ const Register: React.FC = () => {
                 onChange={handleChange}
                 required
               />
+              
             </div>
+            
           </>
         );
       case Step.SelectPlan:
         return (
           <>
-            <h2 className="text-xl font-bold mb-4 text-green-700">Selecciona un Plan</h2>
+            <h2 className="text-xl font-bold mb-4 text-green-700">
+              Selecciona un Plan
+            </h2>
             <div className="mb-4">
-              <label className="block mb-1 font-medium">Plan de Membresía</label>
+              <label className="block mb-1 font-medium">
+                Plan de Membresía
+              </label>
               <select
                 name="membership_plan_id"
                 className="border rounded w-full p-2 focus:border-green-500"
@@ -252,18 +286,30 @@ const Register: React.FC = () => {
                   .filter((p) => p.id === formData.membership_plan_id)
                   .map((p) => (
                     <div key={p.id}>
-                      <p><strong>Descripción:</strong> {p.description}</p>
-                      <p><strong>Precio:</strong> ${p.price}</p>
-                      <p><strong>Duración:</strong> {p.duration_months} meses</p>
-                      <p><strong>Meses gratis:</strong> {p.free_months}</p>
+                      <p>
+                        <strong>Descripción:</strong> {p.description}
+                      </p>
+                      <p>
+                        <strong>Precio:</strong> ${p.price}
+                      </p>
+                      <p>
+                        <strong>Duración:</strong> {p.duration_months} meses
+                      </p>
+                      <p>
+                        <strong>Meses gratis:</strong> {p.free_months}
+                      </p>
                       {p.subscription_fee > 0 ? (
-                        <p><strong>Cuota de suscripción:</strong> ${p.subscription_fee}</p>
+                        <p>
+                          <strong>Cuota de suscripción:</strong> $
+                          {p.subscription_fee}
+                        </p>
                       ) : (
-                        <p><strong>Inscripción gratis</strong></p>
+                        <p>
+                          <strong>Inscripción gratis</strong>
+                        </p>
                       )}
                     </div>
-                  ))
-                }
+                  ))}
               </div>
             )}
           </>
@@ -271,15 +317,25 @@ const Register: React.FC = () => {
       case Step.Confirm:
         return (
           <>
-            <h2 className="text-xl font-bold mb-4 text-green-700">Confirmar Datos</h2>
+            <h2 className="text-xl font-bold mb-4 text-green-700">
+              Confirmar Datos
+            </h2>
             <div className="bg-green-50 border border-green-200 p-4 rounded">
-              <p><strong>Nombre:</strong> {formData.name}</p>
-              <p><strong>Email:</strong> {formData.email}</p>
-              <p><strong>Teléfono:</strong> {formData.phone || 'No especificado'}</p>
-              <p><strong>Plan seleccionado:</strong>
+              <p>
+                <strong>Nombre:</strong> {formData.name}
+              </p>
+              <p>
+                <strong>Email:</strong> {formData.email}
+              </p>
+              <p>
+                <strong>Teléfono:</strong> {formData.phone || 'No especificado'}
+              </p>
+              <p>
+                <strong>Plan seleccionado:</strong>{' '}
                 {
-                  membershipPlans.find((p) => p.id === formData.membership_plan_id)
-                    ?.name
+                  membershipPlans.find(
+                    (p) => p.id === formData.membership_plan_id
+                  )?.name
                 }
               </p>
             </div>
