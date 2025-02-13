@@ -1,4 +1,3 @@
-// src/pages/AdminPanel.tsx
 import React from 'react';
 import { Link, Routes, Route, useLocation } from 'react-router-dom';
 import AdminDashboard from './AdminDashboard';
@@ -6,7 +5,8 @@ import ListPlans from '../admin/ListPlans';
 import ListCustomers from '../admin/ListCustomers';
 import ListLocations from '../admin/ListLocations';
 import ListRenewals from '../admin/ListRenewals';
-import PickupCalendar from './PickupCalendar'; // Importar tu calendario
+import PickupCalendar from './PickupCalendar';
+import Huacales from '../admin/Huacales';
 
 const AdminPanel: React.FC = () => {
   const location = useLocation();
@@ -27,6 +27,7 @@ const AdminPanel: React.FC = () => {
           <Link to="/admin" className={linkClass('/admin')}>
             Panel Admin
           </Link>
+          {/* NOTA: aquí usamos "plans" + subrutas, por eso "plans/*" más abajo */}
           <Link to="/admin/plans" className={linkClass('plans')}>
             Planes
           </Link>
@@ -39,9 +40,11 @@ const AdminPanel: React.FC = () => {
           <Link to="/admin/renewals" className={linkClass('renewals')}>
             Renovaciones
           </Link>
-          {/* Nuevo enlace a Calendar */}
           <Link to="/admin/calendar" className={linkClass('calendar')}>
             Calendario
+          </Link>
+          <Link to="/admin/huacales" className={linkClass('huacales')}>
+            Huacales
           </Link>
         </nav>
       </aside>
@@ -50,11 +53,13 @@ const AdminPanel: React.FC = () => {
       <div className="flex-1 p-4 md:ml-64">
         <Routes>
           <Route path="/" element={<AdminDashboard />} />
-          <Route path="plans" element={<ListPlans />} />
+          {/* IMPORTANTE: aquí se usa "plans/*" */}
+          <Route path="plans/*" element={<ListPlans />} />
           <Route path="customers" element={<ListCustomers />} />
           <Route path="locations" element={<ListLocations />} />
           <Route path="renewals" element={<ListRenewals />} />
           <Route path="calendar" element={<PickupCalendar />} />
+          <Route path="huacales" element={<Huacales />} />
         </Routes>
       </div>
     </div>

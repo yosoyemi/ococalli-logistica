@@ -1,139 +1,157 @@
-// src/admin/CreatePlan.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../services/supabase';
 
 interface CreatePlanProps {
+  // Función para refrescar la lista de planes una vez creado
   refresh: () => void;
 }
 
 const CreatePlan: React.FC<CreatePlanProps> = ({ refresh }) => {
   const navigate = useNavigate();
-  const [planData, setPlanData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    duration_months: '',
-    free_months: '',
-    subscription_fee: ''
-  });
+
+  // Estado local para los campos del nuevo plan
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState<number>(0);
+  const [durationMonths, setDurationMonths] = useState<number>(0);
+  const [freeMonths, setFreeMonths] = useState<number>(0);
+  const [subscriptionFee, setSubscriptionFee] = useState<number>(0);
+
   const [error, setError] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setPlanData({
-      ...planData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    try {
+      setError('');
 
-    const priceParsed = parseFloat(planData.price) || 0;
-    const durationParsed = parseInt(planData.duration_months, 10) || 1;
-    const freeParsed = parseInt(planData.free_months, 10) || 0;
-    const feeParsed = parseFloat(planData.subscription_fee) || 0;
+      // Insert en la tabla membership_plans
+      const { error } = await supabase.from('membership_plans').insert([
+        {
+          name,
+          description,
+          price,
+          duration_months: durationMonths,
+          free_months: freeMonths,
+          subscription_fee: subscriptionFee,
+        },
+      ]);
 
-    const { error: insertError } = await supabase.from('membership_plans').insert([
-      {
-        name: planData.name,
-        description: planData.description,
-        price: priceParsed,
-        duration_months: durationParsed,
-        free_months: freeParsed,
-        subscription_fee: feeParsed
-      }
-    ]);
+      if (error) throw error;
 
-    if (insertError) {
-      setError(insertError.message);
-      return;
+      // Refrescamos la lista de planes y volvemos atrás
+      refresh();
+      navigate('..', { relative: 'path' });
+    } catch (err: any) {
+      setError(err.message);
     }
-
-    refresh();
-    navigate('/admin/plans');
   };
 
   return (
-    <div className="border rounded p-4 bg-white mt-4">
-      <h3 className="text-xl font-bold mb-2 text-green-700">Crear Plan de Membresía</h3>
+    <div className="bg-white rounded shadow p-4">
+      <h2 className="text-xl font-bold text-green-700 mb-4">Crear Nuevo Plan</h2>
+
       {error && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-2 mb-4">
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit}>
-        <div className="mb-2">
-          <label className="block font-medium">Nombre</label>
+
+      <form onSubmit={handleCreate} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Nombre del Plan
+          </label>
           <input
             type="text"
-            name="name"
-            className="border w-full p-2"
-            value={planData.name}
-            onChange={handleChange}
+            className="border rounded w-full px-2 py-1"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
-        <div className="mb-2">
-          <label className="block font-medium">Descripción</label>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Descripción
+          </label>
           <textarea
-            name="description"
-            className="border w-full p-2"
-            value={planData.description}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="flex space-x-2 mb-2">
-          <div className="w-1/3">
-            <label className="block font-medium">Precio</label>
-            <input
-              type="number"
-              step="0.01"
-              name="price"
-              className="border w-full p-2"
-              value={planData.price}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="w-1/3">
-            <label className="block font-medium">Duración (meses)</label>
-            <input
-              type="number"
-              name="duration_months"
-              className="border w-full p-2"
-              value={planData.duration_months}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="w-1/3">
-            <label className="block font-medium">Meses gratis</label>
-            <input
-              type="number"
-              name="free_months"
-              className="border w-full p-2"
-              value={planData.free_months}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
-        <div className="mb-2 w-1/2">
-          <label className="block font-medium">Cuota de Suscripción</label>
-          <input
-            type="number"
-            step="0.01"
-            name="subscription_fee"
-            className="border w-full p-2"
-            value={planData.subscription_fee}
-            onChange={handleChange}
+            className="border rounded w-full px-2 py-1"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
         </div>
 
-        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-          Guardar
-        </button>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Precio
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            className="border rounded w-full px-2 py-1"
+            value={price}
+            onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Duración (meses)
+            </label>
+            <input
+              type="number"
+              className="border rounded w-full px-2 py-1"
+              value={durationMonths}
+              onChange={(e) =>
+                setDurationMonths(parseInt(e.target.value) || 0)
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Meses gratis
+            </label>
+            <input
+              type="number"
+              className="border rounded w-full px-2 py-1"
+              value={freeMonths}
+              onChange={(e) => setFreeMonths(parseInt(e.target.value) || 0)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Cuota de suscripción
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            className="border rounded w-full px-2 py-1"
+            value={subscriptionFee}
+            onChange={(e) =>
+              setSubscriptionFee(parseFloat(e.target.value) || 0)
+            }
+          />
+        </div>
+
+        <div className="flex space-x-2">
+          <button
+            type="submit"
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Guardar
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('..', { relative: 'path' })}
+            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            Cancelar
+          </button>
+        </div>
       </form>
     </div>
   );

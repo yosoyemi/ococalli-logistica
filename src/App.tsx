@@ -1,5 +1,4 @@
 // src/App.tsx
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -10,6 +9,7 @@ import MemberLogin from './pages/MemberLogin';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyMembership from './pages/MyMembership';
+import ListCustomers from './admin/ListCustomers';
 import './index.css';
 
 const App: React.FC = () => {
@@ -33,6 +33,8 @@ const App: React.FC = () => {
 
           {/* Página de membresía (usuario logueado como cliente) */}
           <Route path="/my-membership" element={<MyMembership />} />
+          <Route path="/ListCustomers" element={<ListCustomers />} />
+          
           {/* Si necesitas seguir usando /my-membership/:code, mantén esta ruta */}
           <Route path="/my-membership/:code" element={<MyMembership />} />
 

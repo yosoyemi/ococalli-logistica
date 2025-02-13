@@ -1,4 +1,3 @@
-// src/admin/ListPlans.tsx
 import React, { useState, useEffect } from 'react';
 import { Link, Routes, Route, useNavigate } from 'react-router-dom';
 import supabase from '../services/supabase';
@@ -34,7 +33,7 @@ const ListPlans: React.FC = () => {
     fetchPlans();
   }, []);
 
-  // Función para eliminar un plan
+  // Eliminar un plan
   const handleDeletePlan = async (planId: string) => {
     try {
       setError('');
@@ -44,7 +43,7 @@ const ListPlans: React.FC = () => {
         .eq('id', planId);
 
       if (error) throw error;
-      // Refrescamos la lista
+      // Volvemos a cargar planes
       fetchPlans();
     } catch (err: any) {
       setError(err.message);
@@ -111,7 +110,7 @@ const ListPlans: React.FC = () => {
         ))}
       </div>
 
-      {/* Rutas anidadas para crear y editar un plan */}
+      {/* Subrutas para crear y editar */}
       <Routes>
         <Route path="create" element={<CreatePlan refresh={fetchPlans} />} />
         <Route path="edit/:id" element={<EditPlan refresh={fetchPlans} />} />

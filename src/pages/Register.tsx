@@ -74,8 +74,9 @@ const Register: React.FC = () => {
 
   // Generar código de membresía
   const generateMembershipCode = (): string => {
-    return `OC-${Date.now()}`;
+    return `OC-${Date.now().toString().slice(-5)}`;
   };
+  
 
   const nextStep = () => setCurrentStep((prev) => prev + 1);
   const prevStep = () => setCurrentStep((prev) => prev - 1);

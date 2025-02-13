@@ -1,6 +1,4 @@
-// src/pages/PickupCalendar.tsx
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import supabase from '../services/supabase';
 
 // Para exportar a Excel
@@ -9,7 +7,10 @@ import { saveAs } from 'file-saver';
 
 // Para exportar a PDF
 import jsPDF from 'jspdf';
-// (Opcionalmente) import autoTable from 'jspdf-autotable';
+import 'jspdf-autotable';
+
+// Importamos Chart.js (modo 'auto' para no registrar manualmente todos los componentes)
+import Chart from 'chart.js/auto';
 
 interface PickupLocation {
   id: string;
@@ -29,28 +30,28 @@ interface Customer {
   membership_code: string;
   membership_plan_id: string;
   pickup_location_id: string | null;
-  delivered?: boolean; // Nueva columna
-  delivered_at?: string | null; // Nueva columna
+  delivered?: boolean;
+  delivered_at?: string | null;
+  membership_plans?: MembershipPlan;
   pickup_locations?: {
     id: string;
     name: string;
     address?: string;
     schedule?: string;
   };
-  membership_plans?: MembershipPlan;
 }
 
 const PickupCalendar: React.FC = () => {
-  const [groupedData, setGroupedData] = useState<{ [locationId: string]: Customer[] }>(
-    {}
-  );
-  const [locationsMap, setLocationsMap] = useState<{ [locationId: string]: PickupLocation }>(
-    {}
-  );
+  // Estados actuales
+  const [groupedData, setGroupedData] = useState<{ [locationId: string]: Customer[] }>({});
+  const [locationsMap, setLocationsMap] = useState<{ [locationId: string]: PickupLocation }>({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // 1. Cargar datos
+  // Referencia para la instancia del Chart (para poder destruirla antes de recrearla)
+  const chartRef = useRef<Chart | null>(null);
+
+  // Función para cargar datos
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -68,8 +69,10 @@ const PickupCalendar: React.FC = () => {
           pickup_location_id,
           delivered,
           delivered_at,
-          membership_plans!left(name),
-          pickup_locations!left(
+          membership_plans:customers_membership_plan_id_fkey!left(
+            name
+          ),
+          pickup_locations:customers_pickup_location_id_fkey!left(
             id,
             name,
             address,
@@ -79,15 +82,12 @@ const PickupCalendar: React.FC = () => {
 
       if (customerError) throw customerError;
 
-      console.log('Clientes devueltos:', customers);
-
       // Agrupar por pickup_location_id
       const byLocation: { [locationId: string]: Customer[] } = {};
       const locMap: { [locationId: string]: PickupLocation } = {};
 
       (customers || []).forEach((cust: Customer) => {
         const locId = cust.pickup_location_id || 'SIN_UBICACION';
-
         if (!byLocation[locId]) {
           byLocation[locId] = [];
         }
@@ -112,26 +112,95 @@ const PickupCalendar: React.FC = () => {
     }
   };
 
-  // 2. useEffect para cargar al montar
+  // useEffect para cargar al montar
   useEffect(() => {
     fetchData();
   }, []);
 
-  // 3. Exportar a Excel
+  // useEffect para renderizar o actualizar la gráfica cuando tenemos `groupedData`
+  useEffect(() => {
+    if (!loading && !error) {
+      // Destruimos la anterior si existe (para evitar "Canvas is already in use" en re-renders)
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+      // Creamos la gráfica
+      renderChart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, error, groupedData]);
+
+  // -------------------
+  //  GRAFICAR
+  // -------------------
+  const renderChart = () => {
+    // Obtenemos las keys de groupedData (ID de ubicaciones)
+    const locationIds = Object.keys(groupedData);
+    // Construimos un array de nombres (labels) y un array de contadores
+    // locationIds -> "SIN_UBICACION" iremos al final, por si quieres
+    locationIds.sort((a, b) => {
+      if (a === 'SIN_UBICACION') return 1;
+      if (b === 'SIN_UBICACION') return -1;
+      return 0;
+    });
+
+    const labels = locationIds.map((locId) => {
+      const locObj = locationsMap[locId];
+      return locObj ? locObj.name : 'Sin ubicación asignada';
+    });
+
+    const dataCounts = locationIds.map((locId) => groupedData[locId].length);
+
+    const ctx = document.getElementById('locationChart') as HTMLCanvasElement;
+    if (!ctx) return;
+
+    chartRef.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Clientes por Ubicación',
+            data: dataCounts,
+            backgroundColor: '#34D399', // verde Tailwind
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+          },
+        },
+        scales: {
+          x: {
+            ticks: {
+              font: {
+                size: 12,
+              },
+            },
+          },
+          y: {
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+  };
+
+  // ---------------------------------------------------------------------
+  // Exportar a Excel
+  // ---------------------------------------------------------------------
   const exportToExcel = () => {
-    // Armamos un array de objetos para cada fila
     const rowsForExcel: any[] = [];
 
-    // Recorremos cada ubicación
     Object.keys(groupedData).forEach((locId) => {
       const customersInLocation = groupedData[locId];
       const locData = locationsMap[locId];
-
       customersInLocation.forEach((cust) => {
         rowsForExcel.push({
-          Ubicacion: locData
-            ? locData.name
-            : 'Sin ubicación asignada',
+          Ubicacion: locData ? locData.name : 'Sin ubicación asignada',
           Direccion: locData?.address || '',
           Horario: locData?.schedule || '',
           Cliente: cust.name,
@@ -149,29 +218,34 @@ const PickupCalendar: React.FC = () => {
       return;
     }
 
-    // Crear hoja
     const ws = XLSX.utils.json_to_sheet(rowsForExcel);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'CalendarioRecogidas');
+    XLSX.utils.book_append_sheet(wb, ws, 'CalendarioEntregas');
 
-    // Generar y descargar
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
-    saveAs(blob, 'calendario_recogidas.xlsx');
+    saveAs(blob, 'calendario_entregas.xlsx');
   };
 
-  // 4. Exportar a PDF (básico)
+  // ---------------------------------------------------------------------
+  // Exportar a PDF
+  // ---------------------------------------------------------------------
   const exportToPdf = () => {
     const doc = new jsPDF();
-
-    let yPos = 10; // posición vertical inicial
+    let yPos = 10;
 
     doc.setFontSize(14);
-    doc.text('Calendario de Recogidas', 10, yPos);
+    doc.text('Calendario de Entregas', 10, yPos);
     yPos += 10;
 
-    // Recorremos cada ubicación
-    Object.keys(groupedData).forEach((locId) => {
+    const locationIds = Object.keys(groupedData);
+    locationIds.sort((a, b) => {
+      if (a === 'SIN_UBICACION') return 1;
+      if (b === 'SIN_UBICACION') return -1;
+      return 0;
+    });
+
+    locationIds.forEach((locId) => {
       const customersInLocation = groupedData[locId];
       const locData = locationsMap[locId];
       const locationName = locData ? locData.name : 'Sin ubicación asignada';
@@ -179,11 +253,10 @@ const PickupCalendar: React.FC = () => {
       doc.setFontSize(12);
       doc.text(`Ubicación: ${locationName}`, 10, yPos);
       yPos += 6;
+
       if (locId !== 'SIN_UBICACION') {
         doc.text(
-          `Dirección: ${locData?.address || ''} - Horario: ${
-            locData?.schedule || 'N/A'
-          }`,
+          `Dirección: ${locData?.address || ''} - Horario: ${locData?.schedule || 'N/A'}`,
           10,
           yPos
         );
@@ -191,7 +264,6 @@ const PickupCalendar: React.FC = () => {
       }
 
       customersInLocation.forEach((cust: Customer) => {
-        // Cada cliente en nueva línea
         const rowText = `- ${cust.name} | ${cust.email} | Cod: ${
           cust.membership_code
         } | Plan: ${cust.membership_plans?.name || ''} | Entregado: ${
@@ -200,23 +272,23 @@ const PickupCalendar: React.FC = () => {
         doc.text(rowText, 10, yPos);
         yPos += 6;
 
-        // Salto de página simple
         if (yPos > 270) {
           doc.addPage();
           yPos = 10;
         }
       });
 
-      yPos += 10; // espacio entre ubicaciones
+      yPos += 10;
     });
 
-    doc.save('calendario_recogidas.pdf');
+    doc.save('calendario_entregas.pdf');
   };
 
-  // 5. Marcar un cliente como "Entregado"
+  // ---------------------------------------------------------------------
+  // Marcar como entregado
+  // ---------------------------------------------------------------------
   const handleMarkDelivered = async (customerId: string) => {
     try {
-      // Actualizamos en la DB
       const { error } = await supabase
         .from('customers')
         .update({
@@ -227,7 +299,6 @@ const PickupCalendar: React.FC = () => {
 
       if (error) throw error;
 
-      // Refrescamos
       await fetchData();
       alert('Marcado como entregado');
     } catch (err: any) {
@@ -242,10 +313,8 @@ const PickupCalendar: React.FC = () => {
     return <div className="p-4 text-red-600">Error: {error}</div>;
   }
 
-  // Obtenemos las keys de groupedData
+  // Listado por ubicación
   const locationIds = Object.keys(groupedData);
-
-  // Ordenar la key "SIN_UBICACION" al final
   locationIds.sort((a, b) => {
     if (a === 'SIN_UBICACION') return 1;
     if (b === 'SIN_UBICACION') return -1;
@@ -254,10 +323,9 @@ const PickupCalendar: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
+      {/* Encabezado */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-green-700">
-          Calendario de Recogidas
-        </h2>
+        <h2 className="text-2xl font-bold text-green-700">Calendario de Entregas</h2>
         <div className="space-x-2">
           <button
             onClick={exportToExcel}
@@ -274,28 +342,34 @@ const PickupCalendar: React.FC = () => {
         </div>
       </div>
 
+      {/* Gráfica: #Clientes por Ubicación */}
+      <div className="bg-white rounded shadow p-4 mb-6">
+        <h3 className="text-lg font-semibold text-green-700 mb-2">
+          Gráfica de Clientes por Ubicación
+        </h3>
+        <div className="overflow-auto">
+          <canvas id="locationChart" style={{ width: '100%', maxHeight: 400 }} />
+        </div>
+      </div>
+
+      {/* Listado de ubicaciones */}
       {locationIds.length === 0 && (
         <p className="text-gray-700">No hay clientes registrados.</p>
       )}
 
       {locationIds.map((locId) => {
         const customersInLocation = groupedData[locId];
-
-        // Datos de la ubicación
         const locData = locationsMap[locId];
-        const locationName = locData ? locData.name : 'Sin ubicación asignada';
-        const locationAddress = locData?.address || '';
-        const locationSchedule = locData?.schedule || '';
 
         return (
           <div key={locId} className="mb-6 bg-white rounded shadow p-4">
             <h3 className="text-lg font-bold text-green-700 mb-2">
-              {locationName}
+              {locData ? locData.name : 'Sin ubicación asignada'}
             </h3>
-            {locId !== 'SIN_UBICACION' && (
+            {locId !== 'SIN_UBICACION' && locData && (
               <p className="text-sm text-gray-700">
-                {locationAddress} <br />
-                <strong>Horario:</strong> {locationSchedule || 'N/A'}
+                {locData.address} <br />
+                <strong>Horario:</strong> {locData.schedule || 'N/A'}
               </p>
             )}
 
@@ -308,18 +382,15 @@ const PickupCalendar: React.FC = () => {
                     <strong>Código:</strong> {cust.membership_code}
                     {cust.membership_plans?.name && (
                       <>
-                        {' '}
-                        | <strong>Plan:</strong> {cust.membership_plans?.name}
+                        {' '}| <strong>Plan:</strong> {cust.membership_plans?.name}
                       </>
                     )}
                   </p>
                   <p className="text-sm">
-                    <strong>Entregado:</strong>{' '}
-                    {cust.delivered ? 'Sí' : 'No'}
+                    <strong>Entregado:</strong> {cust.delivered ? 'Sí' : 'No'}
                     {cust.delivered_at && (
                       <span>
-                        {' '}
-                        | <strong>Entregado el:</strong>{' '}
+                        {' '}| <strong>Entregado el:</strong>{' '}
                         {new Date(cust.delivered_at).toLocaleString()}
                       </span>
                     )}
