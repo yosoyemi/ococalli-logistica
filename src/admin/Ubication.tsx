@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import supabase from '../services/supabase';
+import supabase from "../services/supabase";
 import React from "react";
 
 export default function DeliveryForm() {
-  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
-  const [filteredCustomers, setFilteredCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [filterRegion, setFilterRegion] = useState("");
   const [formData, setFormData] = useState({
     customer_id: "",
     delivery_time: "",
@@ -16,52 +17,65 @@ export default function DeliveryForm() {
     payment_method: "",
     cash_payment: false,
     status: "Pendiente",
+    domicilio: "", 
   });
 
   useEffect(() => {
     async function fetchCustomers() {
-      const { data, error } = await supabase.from("customers").select("id, name");
-      if (data) {
+      const { data, error } = await supabase
+        .from("customers")
+        .select(`id, name, pickup_location_id, pickup_location:pickup_location_id (name)`);
+
+      if (error) {
+        console.error("Error en la consulta:", error);
+      } else {
         setCustomers(data);
         setFilteredCustomers(data);
       }
-      if (error) console.error(error);
     }
     fetchCustomers();
   }, []);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e) => {
     const query = e.target.value.toLowerCase();
-    const filtered = customers.filter(customer =>
+    const filtered = customers.filter((customer) =>
       customer.name.toLowerCase().includes(query)
     );
     setFilteredCustomers(filtered);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleFilterRegion = (region) => {
+    setFilterRegion(region);
+    if (region === "") {
+      setFilteredCustomers(customers);
+    } else {
+      const filtered = customers.filter(
+        (customer) => customer.pickup_location?.name === region
+      );
+      setFilteredCustomers(filtered);
+    }
+  };
+
+  const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Verifica si 'extras' es 'Sí' y ajusta los valores de 'extra_item' y 'extra_price'
     const dataToInsert = {
       ...formData,
       extra_item: formData.extras === "Sí" ? formData.extra_item : null,
       extra_price: formData.extras === "Sí" ? formData.extra_price : null,
     };
 
-    // Realiza la inserción en la tabla 'huacales'
     const { error } = await supabase.from("huacales").insert([dataToInsert]);
 
     if (error) {
-      console.error(error); // Mostrar el error en la consola para más detalles
+      console.error(error);
       alert("Error al registrar la entrega");
     } else {
       alert("Entrega registrada con éxito");
-
-      // Limpiar el formulario después de un registro exitoso
       setFormData({
         customer_id: "",
         delivery_time: "",
@@ -73,15 +87,35 @@ export default function DeliveryForm() {
         payment_method: "",
         cash_payment: false,
         status: "Pendiente",
+        domicilio: "", 
       });
     }
   };
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-2xl">
-      <h2 className="text-xl font-bold mb-4">Registrar Entrega</h2>
+      <h2 className="text-xl font-bold mb-4">Registrar Extras</h2>
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => handleFilterRegion("")}
+          className={`p-2 rounded transition-all ${filterRegion === "" ? "bg-gray-800 text-white" : "bg-gray-300 hover:bg-gray-800 hover:text-white"}`}
+        >
+          Todos
+        </button>
+        <button
+          onClick={() => handleFilterRegion("Norte")}
+          className={`p-2 rounded transition-all ${filterRegion === "Norte" ? "bg-blue-800 text-white" : "bg-blue-500 text-white hover:bg-blue-800"}`}
+        >
+          Norte
+        </button>
+        <button
+          onClick={() => handleFilterRegion("Sur")}
+          className={`p-2 rounded transition-all ${filterRegion === "Sur" ? "bg-green-800 text-white" : "bg-green-500 text-white hover:bg-green-800"}`}
+        >
+          Sur
+        </button>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Buscador de clientes */}
         <input
           type="text"
           placeholder="Buscar cliente..."
@@ -89,7 +123,6 @@ export default function DeliveryForm() {
           onChange={handleSearchChange}
         />
 
-        {/* Selector de cliente */}
         <select
           name="customer_id"
           className="w-full p-2 border rounded"
@@ -100,7 +133,7 @@ export default function DeliveryForm() {
           <option value="">Selecciona un cliente</option>
           {filteredCustomers.map((customer) => (
             <option key={customer.id} value={customer.id}>
-              {customer.name}
+              {customer.name} ({customer.pickup_location?.name})
             </option>
           ))}
         </select>
@@ -112,6 +145,16 @@ export default function DeliveryForm() {
           className="w-full p-2 border rounded"
           onChange={handleChange}
           value={formData.delivery_time}
+          required
+        />
+
+        <input
+          type="text"
+          name="domicilio"
+          placeholder="Domicilio"
+          className="w-full p-2 border rounded"
+          onChange={handleChange}
+          value={formData.domicilio}
           required
         />
 
@@ -165,19 +208,6 @@ export default function DeliveryForm() {
               onChange={handleChange}
               value={formData.extra_price}
             />
-            <label className="block">Método de pago</label>
-            <select
-              name="payment_method"
-              className="w-full p-2 border rounded"
-              onChange={handleChange}
-              value={formData.payment_method}
-              required
-            >
-              <option value="">Selecciona un método</option>
-              <option value="Efectivo">Efectivo</option>
-              <option value="Transferencia">Transferencia</option>
-              <option value="Transferencia y Efectivo">Transferencia y Efectivo</option>
-            </select>
           </>
         )}
 
