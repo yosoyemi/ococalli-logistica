@@ -1,4 +1,3 @@
-// src/pages/Register.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';  // IMPORTANTE
 import supabase from '../services/supabase';
@@ -18,6 +17,7 @@ interface FormData {
   email: string;
   phone: string;
   password: string;
+  confirmPassword: string;
   membership_plan_id: string;
 }
 
@@ -30,22 +30,23 @@ enum Step {
 }
 
 const Register: React.FC = () => {
-  const navigate = useNavigate(); // Para redirigir
+  const navigate = useNavigate();
   const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>([]);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     phone: '',
     password: '',
+    confirmPassword: '',
     membership_plan_id: ''
   });
   const [currentStep, setCurrentStep] = useState<Step>(Step.PersonalData);
-
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-
-  // Para evitar doble registro
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -53,7 +54,6 @@ const Register: React.FC = () => {
         const { data, error } = await supabase
           .from('membership_plans')
           .select('*');
-
         if (error) throw error;
         setMembershipPlans(data as MembershipPlan[]);
       } catch (err: any) {
@@ -63,20 +63,12 @@ const Register: React.FC = () => {
     fetchPlans();
   }, []);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
-
-  // Generar código de membresía
-  const generateMembershipCode = (): string => {
-    return `OC-${Date.now().toString().slice(-5)}`;
-  };
-  
 
   const nextStep = () => setCurrentStep((prev) => prev + 1);
   const prevStep = () => setCurrentStep((prev) => prev - 1);
@@ -91,8 +83,12 @@ const Register: React.FC = () => {
         return false;
       }
     } else if (currentStep === Step.Credentials) {
-      if (!formData.password) {
-        setErrorMessage('Por favor ingresa una contraseña.');
+      if (!formData.password || !formData.confirmPassword) {
+        setErrorMessage('Por favor ingresa la contraseña y confirmala.');
+        return false;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setErrorMessage('Las contraseñas no coinciden.');
         return false;
       }
     } else if (currentStep === Step.SelectPlan) {
@@ -109,10 +105,8 @@ const Register: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    // Evitar doble clic
     if (isSubmitting) return;
     setIsSubmitting(true);
-
     setErrorMessage('');
     setSuccessMessage('');
 
@@ -139,19 +133,17 @@ const Register: React.FC = () => {
         `¡Registro exitoso! Tu código de membresía es: ${membership_code}`
       );
 
-      // Redirige al home inmediatamente o después de un pequeño delay
-      // Si deseas mostrar el mensaje por un momento, usa setTimeout:
       setTimeout(() => {
         navigate('/');
       }, 2000);
-
-      // Si prefieres redirigir al instante, comenta el setTimeout y
-      // usa directamente:
-      // navigate('/');
     } catch (err: any) {
       setErrorMessage(err.message);
-      setIsSubmitting(false); // Permite reintentar
+      setIsSubmitting(false);
     }
+  };
+
+  const generateMembershipCode = (): string => {
+    return `OC-${Date.now().toString().slice(-5)}`;
   };
 
   const StepIndicator = () => {
@@ -243,17 +235,48 @@ const Register: React.FC = () => {
             </h2>
             <div className="mb-4">
               <label className="block mb-1 font-medium">Contraseña</label>
-              <input
-                type="password"
-                name="password"
-                className="border rounded w-full p-2 focus:border-green-500"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-              
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  className="border rounded w-full p-2 focus:border-green-500"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-2"
+                >
+                  <i
+                    className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-gray-500`}
+                  ></i>
+                </button>
+              </div>
             </div>
-            
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Confirmar Contraseña</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  className="border rounded w-full p-2 focus:border-green-500"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2 top-2"
+                >
+                  <i
+                    className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} text-gray-500`}
+                  ></i>
+                </button>
+              </div>
+            </div>
           </>
         );
       case Step.SelectPlan:
@@ -276,68 +299,29 @@ const Register: React.FC = () => {
                 <option value="">Elige una opción</option>
                 {membershipPlans.map((plan) => (
                   <option key={plan.id} value={plan.id}>
-                    {plan.name}
+                    {plan.name} - ${plan.price} / mes
                   </option>
                 ))}
               </select>
             </div>
-            {formData.membership_plan_id && (
-              <div className="text-sm bg-green-50 border border-green-200 p-3 rounded mt-2">
-                {membershipPlans
-                  .filter((p) => p.id === formData.membership_plan_id)
-                  .map((p) => (
-                    <div key={p.id}>
-                      <p>
-                        <strong>Descripción:</strong> {p.description}
-                      </p>
-                      <p>
-                        <strong>Precio:</strong> ${p.price}
-                      </p>
-                      <p>
-                        <strong>Duración:</strong> {p.duration_months} meses
-                      </p>
-                      <p>
-                        <strong>Meses gratis:</strong> {p.free_months}
-                      </p>
-                      {p.subscription_fee > 0 ? (
-                        <p>
-                          <strong>Cuota de suscripción:</strong> $
-                          {p.subscription_fee}
-                        </p>
-                      ) : (
-                        <p>
-                          <strong>Inscripción gratis</strong>
-                        </p>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            )}
           </>
         );
       case Step.Confirm:
         return (
           <>
-            <h2 className="text-xl font-bold mb-4 text-green-700">
-              Confirmar Datos
-            </h2>
-            <div className="bg-green-50 border border-green-200 p-4 rounded">
+            <h2 className="text-xl font-bold mb-4 text-green-700">Confirmar</h2>
+            <div className="mb-4">
               <p>
-                <strong>Nombre:</strong> {formData.name}
+                Nombre: {formData.name}
               </p>
               <p>
-                <strong>Email:</strong> {formData.email}
+                Correo: {formData.email}
               </p>
               <p>
-                <strong>Teléfono:</strong> {formData.phone || 'No especificado'}
-              </p>
-              <p>
-                <strong>Plan seleccionado:</strong>{' '}
-                {
-                  membershipPlans.find(
-                    (p) => p.id === formData.membership_plan_id
-                  )?.name
-                }
+                Plan de Membresía:{' '}
+                {membershipPlans.find(
+                  (plan) => plan.id === formData.membership_plan_id
+                )?.name || 'No seleccionado'}
               </p>
             </div>
           </>
@@ -348,51 +332,38 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-50">
-      <div className="container mx-auto max-w-xl px-4 py-8">
-        <h1 className="text-3xl font-extrabold text-green-700 text-center mb-4">
-          Registro de Cliente
-        </h1>
-        <StepIndicator />
-
-        {errorMessage && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-2 mb-4">
-            {errorMessage}
-          </div>
+    <div className="container mx-auto p-6">
+      <StepIndicator />
+      {errorMessage && (
+        <div className="mb-4 text-red-600">{errorMessage}</div>
+      )}
+      {successMessage && (
+        <div className="mb-4 text-green-600">{successMessage}</div>
+      )}
+      {renderStep()}
+      <div className="flex justify-between mt-6">
+        {currentStep > 1 && (
+          <button
+            onClick={prevStep}
+            className="bg-gray-500 text-white py-2 px-4 rounded"
+          >
+            Atrás
+          </button>
         )}
-        {successMessage && (
-          <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-2 mb-4">
-            {successMessage}
-          </div>
-        )}
-
-        <div className="bg-white rounded shadow p-6 mb-4">
-          {renderStep()}
-        </div>
-
-        <div className="flex justify-between">
-          {currentStep > Step.PersonalData && currentStep <= Step.Confirm && (
-            <button
-              onClick={prevStep}
-              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
-            >
-              Anterior
-            </button>
-          )}
-          {currentStep < Step.Confirm && (
+        <div>
+          {currentStep < 4 ? (
             <button
               onClick={handleNext}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto"
+              className="bg-green-600 text-white py-2 px-4 rounded"
             >
               Siguiente
             </button>
-          )}
-          {currentStep === Step.Confirm && (
+          ) : (
             <button
               onClick={handleSubmit}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto"
+              className="bg-green-600 text-white py-2 px-4 rounded"
             >
-              Finalizar Registro
+              Confirmar
             </button>
           )}
         </div>
