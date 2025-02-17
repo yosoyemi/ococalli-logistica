@@ -1,4 +1,3 @@
-// src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -10,6 +9,7 @@ import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyMembership from './pages/MyMembership';
 import ListCustomers from './admin/ListCustomers';
+import PreferredLocation from './admin/SaveUbication';
 import './index.css';
 
 const App: React.FC = () => {
@@ -34,6 +34,9 @@ const App: React.FC = () => {
           {/* Página de membresía (usuario logueado como cliente) */}
           <Route path="/my-membership" element={<MyMembership />} />
           <Route path="/ListCustomers" element={<ListCustomers />} />
+          
+          {/* Nueva página de ubicación preferida */}
+          <Route path="/SaveUbication" element={<PreferredLocation />} />
           
           {/* Si necesitas seguir usando /my-membership/:code, mantén esta ruta */}
           <Route path="/my-membership/:code" element={<MyMembership />} />

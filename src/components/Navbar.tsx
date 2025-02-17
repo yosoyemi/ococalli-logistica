@@ -1,13 +1,11 @@
-// src/components/Navbar.tsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import supabase from '../services/supabase';
-import { Bars3Icon, XMarkIcon, HomeIcon, WrenchIcon } from '@heroicons/react/24/outline';
 
 const Navbar: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userName] = useState(''); // puedes usar un estado y fetch de la tabla 'users' si lo deseas
+  const [userName] = useState('');
 
   useEffect(() => {
     const getSession = async () => {
@@ -31,139 +29,168 @@ const Navbar: React.FC = () => {
   }, []);
 
   return (
-    <nav className="bg-white shadow-md">
-      <div className="container mx-auto p-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center mx-auto md:ml-32">
-          <img src="/ococalli.png" alt="Cocoalli" className="h-16 w-auto" />
-        </Link>
-        <div className="hidden md:flex flex-1 justify-center space-x-8">
+    <>
+      {/* Navbar */}
+      <nav className="bg-white shadow-md">
+        <div className="container mx-auto p-4 flex items-center relative">
+          {/* Logo */}
           <Link
             to="/"
-            className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md flex items-center space-x-2"
+            /* 
+               - En móvil: position absolute y centrado.
+               - A partir de md: se revierte a 'static' y se quita el transform.
+            */
+            className="
+              absolute left-1/2 transform -translate-x-1/2
+              md:static md:transform-none
+            "
           >
-            <HomeIcon className="h-5 w-5" aria-hidden="true" />
-            <span>Inicio</span>
+            <img src="/ococalli.png" alt="Cocoalli" className="h-16 w-auto" />
           </Link>
-          <Link
-            to="/admin"
-            className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md flex items-center space-x-2"
-          >
-            <WrenchIcon className="h-5 w-5" aria-hidden="true" />
-            <span>Admin Panel</span>
-          </Link>
-        </div>
 
-        <div className="hidden md:flex items-center space-x-4 ml-auto">
-          {session ? (
-            <>
-              <span className="text-gray-800 text-sm font-medium">
-                {userName || session.user.email}
-              </span>
-              <button
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  window.location.href = '/';
-                }}
-                className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
-              >
-                Cerrar sesión 
-              </button>
-            </>
-          ) : (
+          {/* Menú de escritorio (oculto en móvil) */}
+          <div className="hidden md:flex flex-1 justify-center space-x-8">
             <Link
-              to="/login"
+              to="/"
               className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
             >
-              Iniciar sesión
+              Inicio
             </Link>
-          )}
-        </div>
+            <Link
+              to="/admin"
+              className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
+            >
+              Admin Panel
+            </Link>
+          </div>
 
-        {/* Menú móvil */}
-        <div className="md:hidden flex items-center space-x-4">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            className="text-gray-800 focus:outline-none"
-          >
-            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-
-      {/* Sidebar móvil */}
-      <div
-        className={`fixed inset-0 z-40 flex ${
-          mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        } transition-transform duration-300 ease-in-out mobile-menu ${
-          mobileMenuOpen ? 'open' : ''
-        }`}
-      >
-        {mobileMenuOpen && (
-          <>
-            <div
-              className="fixed inset-0 bg-black bg-opacity-25"
-              onClick={() => setMobileMenuOpen(false)}
-            ></div>
-            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl ml-auto">
-              <div className="absolute top-0 left-0 pt-2">
+          {/* Controles de usuario (ocultos en móvil) */}
+          <div className="hidden md:flex items-center space-x-4 ml-auto">
+            {session ? (
+              <>
+                <span className="text-gray-800 text-sm font-medium">
+                  {userName || session.user.email}
+                </span>
                 <button
-                  type="button"
-                  className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:bg-gray-600 close-button"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    window.location.href = '/';
+                  }}
+                  className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
                 >
-                  <XMarkIcon className="h-6 w-6 text-gray-800" aria-hidden="true" />
+                  Cerrar sesión
                 </button>
-              </div>
-              <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-                <nav className="mt-5 px-2 space-y-1">
-                  <Link
-                    to="/"
-                    className="block text-gray-800 px-3 py-2 rounded-md text-base font-medium hover:bg-gray-200 flex items-center space-x-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <HomeIcon className="h-5 w-5" aria-hidden="true" />
-                    <span>Inicio</span>
-                  </Link>
-                  <Link
-                    to="/admin"
-                    className="block text-gray-800 px-3 py-2 rounded-md text-base font-medium hover:bg-gray-200 flex items-center space-x-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <WrenchIcon className="h-5 w-5" aria-hidden="true" />
-                    <span>Admin Panel</span>
-                  </Link>
-                  {session ? (
-                    <>
-                      <span className="block text-gray-800 px-3 py-2 rounded-md text-base font-medium">
-                        {userName || session.user.email}
-                      </span>
-                      <button
-                        onClick={async () => {
-                          await supabase.auth.signOut();
-                          window.location.href = '/';
-                        }}
-                        className="block text-gray-800 px-3 py-2 rounded-md text-base font-medium hover:bg-gray-200 w-full text-left"
-                      >
-                        Logout
-                      </button>
-                    </>
-                  ) : (
-                    <Link
-                      to="/login"
-                      className="block text-gray-800 px-3 py-2 rounded-md text-base font-medium hover:bg-gray-200"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Login Admin
-                    </Link>
-                  )}
-                </nav>
-              </div>
-            </div>
-          </>
-        )}
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
+              >
+                Iniciar sesión
+              </Link>
+            )}
+          </div>
+
+          {/* Botón Hamburger (visible solo en móvil) */}
+          <div className="md:hidden ml-auto">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-gray-800 p-2 rounded-md hover:bg-gray-200 shadow-md"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Sidebar en móvil (ejemplo) */}
+      <div
+        className={`
+          fixed top-0 left-0 h-full w-64 bg-white shadow-xl
+          transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+          transition-transform duration-300 ease-in-out z-50
+        `}
+      >
+        <div className="p-4 flex flex-col h-full">
+          {/* Logo dentro de sidebar (opcional) */}
+          <div className="mb-4">
+            <Link to="/" onClick={() => setMobileMenuOpen(false)}>
+              <img
+                src="/ococalli.png"
+                alt="Cocoalli"
+                className="h-16 w-auto mx-auto"
+              />
+            </Link>
+          </div>
+
+          {/* Links */}
+          <nav className="flex-1">
+            <Link
+              to="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md mb-2"
+            >
+              Inicio
+            </Link>
+            <Link
+              to="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
+            >
+              Admin Panel
+            </Link>
+          </nav>
+
+          {/* Controles de usuario en móvil */}
+          <div className="mt-auto">
+            {session ? (
+              <>
+                <span className="text-gray-800 text-sm font-medium block mb-2">
+                  {userName || session.user.email}
+                </span>
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    window.location.href = '/';
+                  }}
+                  className="w-full text-left text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
+                >
+                  Cerrar sesión
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full text-left text-gray-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200 shadow-md"
+              >
+                Iniciar sesión
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
-    </nav>
+
+      {/* Overlay para cerrar sidebar */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-30 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+    </>
   );
 };
 

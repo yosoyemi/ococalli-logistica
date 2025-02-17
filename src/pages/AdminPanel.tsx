@@ -6,7 +6,7 @@ import ListCustomers from '../admin/ListCustomers';
 import ListLocations from '../admin/ListLocations';
 import ListRenewals from '../admin/ListRenewals';
 import PickupCalendar from './PickupCalendar';
-import Huacales from '../admin/Huacales';
+import PreferredLocation from '../admin/SaveUbication';
 
 const AdminPanel: React.FC = () => {
   const location = useLocation();
@@ -43,8 +43,8 @@ const AdminPanel: React.FC = () => {
           <Link to="/admin/calendar" className={linkClass('calendar')}>
             Calendario
           </Link>
-          <Link to="/admin/huacales" className={linkClass('huacales')}>
-            Huacales
+          <Link to="/admin/SaveUbication" className={linkClass('huacales')}>
+            Zonas de Entrega
           </Link>
         </nav>
       </aside>
@@ -59,7 +59,7 @@ const AdminPanel: React.FC = () => {
           <Route path="locations" element={<ListLocations />} />
           <Route path="renewals" element={<ListRenewals />} />
           <Route path="calendar" element={<PickupCalendar />} />
-          <Route path="huacales" element={<Huacales />} />
+          <Route path="huacales" element={<PreferredLocation />} />
         </Routes>
       </div>
     </div>

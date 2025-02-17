@@ -232,57 +232,55 @@ const PickupCalendar: React.FC = () => {
   // ---------------------------------------------------------------------
   const exportToPdf = () => {
     const doc = new jsPDF();
-    let yPos = 10;
-
-    doc.setFontSize(14);
-    doc.text('Calendario de Entregas', 10, yPos);
-    yPos += 10;
-
-    const locationIds = Object.keys(groupedData);
-    locationIds.sort((a, b) => {
-      if (a === 'SIN_UBICACION') return 1;
-      if (b === 'SIN_UBICACION') return -1;
-      return 0;
-    });
-
-    locationIds.forEach((locId) => {
+  
+    // Establecer margen y estilos
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Calendario de Entregas", 105, 15, { align: "center" });
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+  
+    const locationIds = Object.keys(groupedData).sort((a, b) => (a === "SIN_UBICACION" ? 1 : b === "SIN_UBICACION" ? -1 : 0));
+  
+    locationIds.forEach((locId, index) => {
       const customersInLocation = groupedData[locId];
       const locData = locationsMap[locId];
-      const locationName = locData ? locData.name : 'Sin ubicación asignada';
-
-      doc.setFontSize(12);
-      doc.text(`Ubicación: ${locationName}`, 10, yPos);
-      yPos += 6;
-
-      if (locId !== 'SIN_UBICACION') {
-        doc.text(
-          `Dirección: ${locData?.address || ''} - Horario: ${locData?.schedule || 'N/A'}`,
-          10,
-          yPos
-        );
-        yPos += 6;
+      const locationName = locData ? locData.name : "Sin ubicación asignada";
+  
+      if (index !== 0) doc.addPage(); // Nueva página por ubicación
+  
+      doc.setFontSize(14);
+      doc.setTextColor(0, 100, 0);
+      doc.text(`Ubicación: ${locationName}`, 14, 30);
+      doc.setTextColor(0, 0, 0);
+  
+      if (locId !== "SIN_UBICACION") {
+        doc.setFontSize(10);
+        doc.text(`Dirección: ${locData?.address || "N/A"} | Horario: ${locData?.schedule || "N/A"}`, 14, 38);
       }
-
-      customersInLocation.forEach((cust: Customer) => {
-        const rowText = `- ${cust.name} | ${cust.email} | Cod: ${
-          cust.membership_code
-        } | Plan: ${cust.membership_plans?.name || ''} | Entregado: ${
-          cust.delivered ? 'Sí' : 'No'
-        }`;
-        doc.text(rowText, 10, yPos);
-        yPos += 6;
-
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 10;
-        }
+  
+      const tableData = customersInLocation.map((cust) => [
+        cust.name,
+        cust.email,
+        cust.membership_code,
+        cust.membership_plans?.name || "N/A",
+        cust.delivered ? "Sí" : "No",
+        cust.delivered_at ? new Date(cust.delivered_at).toLocaleString() : "N/A"
+      ]);
+  
+      doc.autoTable({
+        startY: locId !== "SIN_UBICACION" ? 45 : 38,
+        head: [["Cliente", "Email", "Código", "Plan", "Entregado", "Fecha Entrega"]],
+        body: tableData,
+        theme: "grid",
+        headStyles: { fillColor: [0, 100, 0] },
+        styles: { fontSize: 10, cellPadding: 3 },
       });
-
-      yPos += 10;
     });
-
-    doc.save('calendario_entregas.pdf');
+  
+    doc.save("calendario_entregas.pdf");
   };
+  
 
   // ---------------------------------------------------------------------
   // Marcar como entregado
