@@ -1,3 +1,4 @@
+// src/pages/AdminPanel.tsx
 import React from 'react';
 import { Link, Routes, Route, useLocation } from 'react-router-dom';
 import AdminDashboard from './AdminDashboard';
@@ -6,11 +7,13 @@ import ListCustomers from '../admin/ListCustomers';
 import ListLocations from '../admin/ListLocations';
 import ListRenewals from '../admin/ListRenewals';
 import PickupCalendar from './PickupCalendar';
-import PreferredLocation from '../admin/SaveUbication';
+// Ojo: este es tu formulario que antes estaba importado como "Ubication"
+import DeliveryForm from '../admin/Ubication';
 
 const AdminPanel: React.FC = () => {
   const location = useLocation();
 
+  // Para resaltar el enlace activo, revisamos si el pathname contiene 'path'
   const linkClass = (path: string) => {
     const baseStyle = 'block px-4 py-2 hover:bg-green-100 rounded transition';
     return location.pathname.includes(path)
@@ -27,7 +30,6 @@ const AdminPanel: React.FC = () => {
           <Link to="/admin" className={linkClass('/admin')}>
             Panel Admin
           </Link>
-          {/* NOTA: aquí usamos "plans" + subrutas, por eso "plans/*" más abajo */}
           <Link to="/admin/plans" className={linkClass('plans')}>
             Planes
           </Link>
@@ -43,7 +45,9 @@ const AdminPanel: React.FC = () => {
           <Link to="/admin/calendar" className={linkClass('calendar')}>
             Calendario
           </Link>
-          <Link to="/admin/SaveUbication" className={linkClass('huacales')}>
+
+          {/* CORRECCIÓN: si vas a usar "/admin/Ubication", ajusta tanto el to= como el linkClass */}
+          <Link to="/admin/Ubication" className={linkClass('Ubication')}>
             Zonas de Entrega
           </Link>
         </nav>
@@ -53,13 +57,14 @@ const AdminPanel: React.FC = () => {
       <div className="flex-1 p-4 md:ml-64">
         <Routes>
           <Route path="/" element={<AdminDashboard />} />
-          {/* IMPORTANTE: aquí se usa "plans/*" */}
           <Route path="plans/*" element={<ListPlans />} />
           <Route path="customers" element={<ListCustomers />} />
           <Route path="locations" element={<ListLocations />} />
           <Route path="renewals" element={<ListRenewals />} />
           <Route path="calendar" element={<PickupCalendar />} />
-          <Route path="huacales" element={<PreferredLocation />} />
+
+          {/* CORRECCIÓN: ahora la ruta interna es "Ubication" (coincide con el Link anterior) */}
+          <Route path="Ubication" element={<DeliveryForm />} />
         </Routes>
       </div>
     </div>

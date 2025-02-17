@@ -194,12 +194,17 @@ const PickupCalendar: React.FC = () => {
   // ---------------------------------------------------------------------
   const exportToExcel = () => {
     const rowsForExcel: any[] = [];
-
+    const surRows: any[] = [];
+    const norteRows: any[] = [];
+    const sinUbicacionRows: any[] = [];
+  
+    // Se agrupan los datos por ubicación (Sur, Norte, Sin Ubicación)
     Object.keys(groupedData).forEach((locId) => {
       const customersInLocation = groupedData[locId];
       const locData = locationsMap[locId];
+  
       customersInLocation.forEach((cust) => {
-        rowsForExcel.push({
+        const row = {
           Ubicacion: locData ? locData.name : 'Sin ubicación asignada',
           Direccion: locData?.address || '',
           Horario: locData?.schedule || '',
@@ -209,23 +214,76 @@ const PickupCalendar: React.FC = () => {
           Plan: cust.membership_plans?.name || '',
           Entregado: cust.delivered ? 'Sí' : 'No',
           EntregadoEl: cust.delivered_at || '',
-        });
+        };
+  
+        if (locData) {
+          if (locData.name.toLowerCase().includes('sur')) {
+            surRows.push(row);
+          } else if (locData.name.toLowerCase().includes('norte')) {
+            norteRows.push(row);
+          } else {
+            sinUbicacionRows.push(row);
+          }
+        } else {
+          sinUbicacionRows.push(row);
+        }
       });
     });
-
-    if (rowsForExcel.length === 0) {
+  
+    if (surRows.length === 0 && norteRows.length === 0 && sinUbicacionRows.length === 0) {
       alert('No hay datos para exportar.');
       return;
     }
-
-    const ws = XLSX.utils.json_to_sheet(rowsForExcel);
+  
+    // Creación de hojas para cada ubicación
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'CalendarioEntregas');
-
+  
+    const createSheet = (rows: any[], sheetName: string, color: string) => {
+      if (rows.length === 0) return;
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wsRange = XLSX.utils.decode_range(ws['!ref'] || "A1");
+  
+      // Estilos de las celdas
+      const headerCellStyle = { font: { bold: true }, fill: { fgColor: { rgb: "FFFF00" } } }; // Color de fondo amarillo para encabezados
+      const cellStyle = { font: { color: { rgb: "000000" } } }; // Color de texto negro
+  
+      // Aplica el estilo a los encabezados
+      ws['A1'].s = headerCellStyle;
+      ws['B1'].s = headerCellStyle;
+      ws['C1'].s = headerCellStyle;
+      ws['D1'].s = headerCellStyle;
+      ws['E1'].s = headerCellStyle;
+      ws['F1'].s = headerCellStyle;
+      ws['G1'].s = headerCellStyle;
+      ws['H1'].s = headerCellStyle;
+  
+      // Colores alternos para las filas (diferentes según ubicación)
+      rows.forEach((row, index) => {
+        const rowIndex = index + 2; // Inicia desde la segunda fila para no sobrescribir encabezados
+        const rowColor = index % 2 === 0 ? { rgb: color } : { rgb: "FFFFFF" }; // Alterna entre colores
+        Object.keys(row).forEach((key, colIndex) => {
+          const cell = ws[XLSX.utils.encode_cell({ r: rowIndex - 1, c: colIndex })];
+          if (cell) {
+            cell.s = cellStyle; // Aplica el estilo a las celdas
+            cell.s.fill = { fgColor: rowColor }; // Aplica el color a las filas alternadas
+          }
+        });
+      });
+  
+      // Añadir la hoja al libro
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    };
+  
+    // Crear las hojas para Sur, Norte y Sin ubicación con colores diferenciados
+    createSheet(surRows, 'Sur', 'D3D3D3'); // Gris claro para Sur
+    createSheet(norteRows, 'Norte', 'ADD8E6'); // Azul claro para Norte
+    createSheet(sinUbicacionRows, 'Sin Ubicación', 'FFD700'); // Amarillo para Sin Ubicación
+  
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
     saveAs(blob, 'calendario_entregas.xlsx');
   };
+  
 
   // ---------------------------------------------------------------------
   // Exportar a PDF

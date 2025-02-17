@@ -223,7 +223,7 @@ class AdminDashboard extends React.Component<{}, AdminDashboardState> {
             Renovaciones
           </Link>
           <Link
-            to="/admin/huacales"
+            to="/admin/Ubication"
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
           >
             Huacales
@@ -239,5 +239,6 @@ class AdminDashboard extends React.Component<{}, AdminDashboardState> {
     );
   }
 }
+
 
 export default AdminDashboard;

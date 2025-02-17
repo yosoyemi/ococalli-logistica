@@ -9,7 +9,7 @@ import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyMembership from './pages/MyMembership';
 import ListCustomers from './admin/ListCustomers';
-import PreferredLocation from './admin/SaveUbication';
+import DeliveryForm from './admin/Ubication';
 import './index.css';
 
 const App: React.FC = () => {
@@ -36,7 +36,7 @@ const App: React.FC = () => {
           <Route path="/ListCustomers" element={<ListCustomers />} />
           
           {/* Nueva página de ubicación preferida */}
-          <Route path="/SaveUbication" element={<PreferredLocation />} />
+          <Route path="/Ubication" element={<DeliveryForm />} />
           
           {/* Si necesitas seguir usando /my-membership/:code, mantén esta ruta */}
           <Route path="/my-membership/:code" element={<MyMembership />} />
