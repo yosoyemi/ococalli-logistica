@@ -3,43 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import supabase from '../services/supabase';
 
 interface CreatePlanProps {
-  // Función para refrescar la lista de planes una vez creado
   refresh: () => void;
 }
 
 const CreatePlan: React.FC<CreatePlanProps> = ({ refresh }) => {
   const navigate = useNavigate();
-
-  // Estado local para los campos del nuevo plan
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState<number>(0);
-  const [durationMonths, setDurationMonths] = useState<number>(0);
-  const [freeMonths, setFreeMonths] = useState<number>(0);
-  const [subscriptionFee, setSubscriptionFee] = useState<number>(0);
-
+  const [plan, setPlan] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    duration_months: 0, 
+    free_months: 0,
+    subscription_fee: 0,
+  });
   const [error, setError] = useState('');
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       setError('');
 
-      // Insert en la tabla membership_plans
-      const { error } = await supabase.from('membership_plans').insert([
-        {
-          name,
-          description,
-          price,
-          duration_months: durationMonths,
-          free_months: freeMonths,
-          subscription_fee: subscriptionFee,
-        },
-      ]);
+      const { error } = await supabase.from('membership_plans').insert([plan]);
 
       if (error) throw error;
 
-      // Refrescamos la lista de planes y volvemos atrás
       refresh();
       navigate('..', { relative: 'path' });
     } catch (err: any) {
@@ -59,90 +47,71 @@ const CreatePlan: React.FC<CreatePlanProps> = ({ refresh }) => {
 
       <form onSubmit={handleCreate} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Nombre del Plan
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Nombre del Plan</label>
           <input
             type="text"
             className="border rounded w-full px-2 py-1"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={plan.name}
+            onChange={(e) => setPlan({ ...plan, name: e.target.value })}
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Descripción
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Descripción</label>
           <textarea
             className="border rounded w-full px-2 py-1"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={plan.description}
+            onChange={(e) => setPlan({ ...plan, description: e.target.value })}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Precio
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Precio</label>
           <input
             type="number"
             step="0.01"
             className="border rounded w-full px-2 py-1"
-            value={price}
-            onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+            value={plan.price}
+            onChange={(e) => setPlan({ ...plan, price: parseFloat(e.target.value) || 0 })}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Duración (meses)
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Duración (meses)</label>
             <input
               type="number"
               className="border rounded w-full px-2 py-1"
-              value={durationMonths}
-              onChange={(e) =>
-                setDurationMonths(parseInt(e.target.value) || 0)
-              }
+              value={plan.duration_months}
+              onChange={(e) => setPlan({ ...plan, duration_months: parseInt(e.target.value) || 0 })}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Meses gratis
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Meses gratis</label>
             <input
               type="number"
               className="border rounded w-full px-2 py-1"
-              value={freeMonths}
-              onChange={(e) => setFreeMonths(parseInt(e.target.value) || 0)}
+              value={plan.free_months}
+              onChange={(e) => setPlan({ ...plan, free_months: parseInt(e.target.value) || 0 })}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Cuota de suscripción
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Cuota de suscripción</label>
           <input
             type="number"
             step="0.01"
             className="border rounded w-full px-2 py-1"
-            value={subscriptionFee}
-            onChange={(e) =>
-              setSubscriptionFee(parseFloat(e.target.value) || 0)
-            }
+            value={plan.subscription_fee}
+            onChange={(e) => setPlan({ ...plan, subscription_fee: parseFloat(e.target.value) || 0 })}
           />
         </div>
 
         <div className="flex space-x-2">
-          <button
-            type="submit"
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Guardar
+          <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            Crear
           </button>
           <button
             type="button"

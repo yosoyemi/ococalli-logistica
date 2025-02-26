@@ -4,7 +4,7 @@ import supabase from '../services/supabase';
 
 interface EditPlanProps {
   refresh: () => void;
-}
+} 
 
 interface Plan {
   id: string;

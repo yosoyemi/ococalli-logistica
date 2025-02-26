@@ -7,13 +7,12 @@ import ListCustomers from '../admin/ListCustomers';
 import ListLocations from '../admin/ListLocations';
 import ListRenewals from '../admin/ListRenewals';
 import PickupCalendar from './PickupCalendar';
-// Ojo: este es tu formulario que antes estaba importado como "Ubication"
 import DeliveryForm from '../admin/Ubication';
+import Eliminar from '../admin/eliminar';
 
 const AdminPanel: React.FC = () => {
   const location = useLocation();
 
-  // Para resaltar el enlace activo, revisamos si el pathname contiene 'path'
   const linkClass = (path: string) => {
     const baseStyle = 'block px-4 py-2 hover:bg-green-100 rounded transition';
     return location.pathname.includes(path)
@@ -27,29 +26,14 @@ const AdminPanel: React.FC = () => {
       <aside className="w-64 bg-white shadow-md h-screen p-4 hidden md:block">
         <h1 className="text-2xl font-bold text-green-700 mb-4">Admin Panel</h1>
         <nav className="space-y-2">
-          <Link to="/admin" className={linkClass('/admin')}>
-            Panel Admin
-          </Link>
-          <Link to="/admin/plans" className={linkClass('plans')}>
-            Planes
-          </Link>
-          <Link to="/admin/customers" className={linkClass('customers')}>
-            Clientes
-          </Link>
-          <Link to="/admin/locations" className={linkClass('locations')}>
-            Ubicaciones
-          </Link>
-          <Link to="/admin/renewals" className={linkClass('renewals')}>
-            Renovaciones
-          </Link>
-          <Link to="/admin/calendar" className={linkClass('calendar')}>
-            Calendario
-          </Link>
-
-          {/* CORRECCIÓN: si vas a usar "/admin/Ubication", ajusta tanto el to= como el linkClass */}
-          <Link to="/admin/Ubication" className={linkClass('Ubication')}>
-            Zonas de Entrega
-          </Link>
+          <Link to="/admin" className={linkClass('/admin')}>Panel Admin</Link>
+          <Link to="/admin/plans" className={linkClass('plans')}>Planes</Link>
+          <Link to="/admin/customers" className={linkClass('customers')}>Clientes</Link>
+          <Link to="/admin/locations" className={linkClass('locations')}>Ubicaciones</Link>
+          <Link to="/admin/renewals" className={linkClass('renewals')}>Renovaciones</Link>
+          <Link to="/admin/calendar" className={linkClass('calendar')}>Calendario</Link>
+          <Link to="/admin/ubication" className={linkClass('ubication')}>Zonas de Entrega</Link>
+          <Link to="/admin/eliminar" className={linkClass('eliminar')}>Eliminar Usuarios</Link>
         </nav>
       </aside>
 
@@ -62,9 +46,8 @@ const AdminPanel: React.FC = () => {
           <Route path="locations" element={<ListLocations />} />
           <Route path="renewals" element={<ListRenewals />} />
           <Route path="calendar" element={<PickupCalendar />} />
-
-          {/* CORRECCIÓN: ahora la ruta interna es "Ubication" (coincide con el Link anterior) */}
-          <Route path="Ubication" element={<DeliveryForm />} />
+          <Route path="ubication" element={<DeliveryForm />} />
+          <Route path="eliminar" element={<Eliminar />} />
         </Routes>
       </div>
     </div>

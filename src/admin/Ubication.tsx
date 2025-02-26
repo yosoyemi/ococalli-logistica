@@ -178,7 +178,7 @@ export default function DeliveryForm() {
           value={formData.returned_huacals}
         />
 
-        <label className="block">¿Compraste extras?</label>
+        <label className="block">¿Compras extras?</label>
         <select
           name="extras"
           className="w-full p-2 border rounded"

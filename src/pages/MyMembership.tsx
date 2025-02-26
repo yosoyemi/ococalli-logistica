@@ -1,7 +1,6 @@
-// src/pages/MyMembership.tsx
-
 import React, { useEffect, useState } from 'react';
 import supabase from '../services/supabase';
+import { FaEye, FaEyeSlash } from 'react-icons/fa'; // Importa los íconos
 
 interface PickupLocation {
   id: string;
@@ -32,6 +31,11 @@ const MyMembership: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
 
+  const [showChangeForm, setShowChangeForm] = useState<boolean>(false); // Nuevo estado para el formulario
+  const [newEmail, setNewEmail] = useState<string>(customerData?.email || '');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false); // Para mostrar/ocultar la contraseña
+
   // Calcula días restantes
   const calculateDaysLeft = (
     startDate: string | null,
@@ -51,7 +55,6 @@ const MyMembership: React.FC = () => {
       setSuccessMessage('');
 
       try {
-        // Leer el customer_id guardado en localStorage al hacer login
         const storedId = localStorage.getItem('customer_id');
         if (!storedId) {
           setError('No hay sesión activa. Inicia sesión de nuevo, por favor.');
@@ -59,7 +62,6 @@ const MyMembership: React.FC = () => {
           return;
         }
 
-        // Buscar al cliente por ID
         const { data: customer, error: customerError } = await supabase
           .from('customers')
           .select(`
@@ -85,7 +87,6 @@ const MyMembership: React.FC = () => {
         setCustomerData(customer as CustomerData);
         setSelectedLocation(customer.pickup_location_id || '');
 
-        // Obtener ubicaciones
         const { data: locations, error: locError } = await supabase
           .from('pickup_locations')
           .select('*');
@@ -117,7 +118,6 @@ const MyMembership: React.FC = () => {
     customerData.end_date
   );
 
-  // Guardar la ubicación (el horario está dentro de la ubicación, no se guarda en customers)
   const handleSaveLocation = async () => {
     setError('');
     setSuccessMessage('');
@@ -130,7 +130,39 @@ const MyMembership: React.FC = () => {
 
       if (updateError) throw updateError;
 
-      setSuccessMessage('¡Ubicación de recogida actualizada!');
+      setSuccessMessage('¡Ubicación de entrega actualizada!');
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  // Función para cambiar el correo y la contraseña
+  const handleChangeEmailPassword = async () => {
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const updateData: { email?: string; password?: string } = {};
+
+      // Solo actualizar el correo si se proporcionó
+      if (newEmail) {
+        updateData.email = newEmail;
+      }
+
+      // Solo actualizar la contraseña si se proporcionó
+      if (newPassword) {
+        updateData.password = newPassword;
+      }
+
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update(updateData) // Usamos updateData, que solo contiene los campos que cambiaron
+        .eq('id', customerData.id);
+
+      if (updateError) throw updateError;
+
+      setSuccessMessage('Datos actualizados exitosamente!');
+      setShowChangeForm(false); // Cerrar el formulario
     } catch (err: any) {
       setError(err.message);
     }
@@ -218,7 +250,6 @@ const MyMembership: React.FC = () => {
             Guardar Preferencia
           </button>
 
-          {/* Mostrar el horario de la ubicación seleccionada (solo lectura) */}
           {selectedLocation && (
             <div className="mt-4 bg-gray-100 p-2 rounded">
               <h3 className="font-bold">Horario de la ubicación elegida:</h3>
@@ -229,6 +260,47 @@ const MyMembership: React.FC = () => {
             </div>
           )}
         </div>
+
+        <button
+          onClick={() => setShowChangeForm(!showChangeForm)}
+          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Cambiar correo y contraseña
+        </button>
+
+        {showChangeForm && (
+          <div className="mt-4 bg-white p-6 rounded shadow">
+            <h3 className="text-xl font-semibold mb-4">Cambiar Correo y Contraseña</h3>
+            <label className="block mb-2 text-sm font-medium">Nuevo Correo</label>
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              className="border p-2 rounded w-full mb-4"
+            />
+            <label className="block mb-2 text-sm font-medium">Nueva Contraseña</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="border p-2 rounded w-full mb-4"
+              />
+              <div
+                className="absolute right-2 top-2 cursor-pointer"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </div>
+            </div>
+            <button
+              onClick={handleChangeEmailPassword}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Guardar Cambios
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

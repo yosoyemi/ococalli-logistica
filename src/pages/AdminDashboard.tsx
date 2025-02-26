@@ -226,13 +226,20 @@ class AdminDashboard extends React.Component<{}, AdminDashboardState> {
             to="/admin/Ubication"
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
           >
-            Huacales
+            Zonas de Entrega
           </Link>
           <Link
             to="/admin/calendar"
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
           >
             Calendario de Entrega
+          </Link>
+
+          <Link
+            to="/admin/eliminar"
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Eliminar Usuario
           </Link>
         </div>
       </div>
